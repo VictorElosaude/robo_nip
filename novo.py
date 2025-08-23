@@ -10,11 +10,27 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
-from webdriver_manager.chrome import ChromeDriverManager
 from datetime import datetime
 
-import config
-from utils import setup_logger, send_google_chat_notification
+# Certifique-se de ter os arquivos 'config.py' e 'utils.py' no mesmo diretório
+# import config
+# from utils import setup_logger, send_google_chat_notification
+
+# # Caso você não tenha os arquivos de configuração, pode usar estas linhas temporariamente
+# def setup_logger():
+#     import logging
+#     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+#     return logging.getLogger()
+
+# def send_google_chat_notification(message, is_error=False):
+#     print(f"Notificação Google Chat: {message}")
+
+# class Config:
+#     LOGIN_URL = "http://example.com/login" # Substitua pela sua URL de login
+#     USERNAME = "seu_usuario" # Substitua pelo seu usuário
+#     PASSWORD = "sua_senha" # Substitua pela sua senha
+#     DOWNLOAD_PATH = "logs"
+# config = Config()
 
 logger = setup_logger()
 
@@ -24,9 +40,16 @@ def highlight(element, driver):
     time.sleep(1)
 
 def setup_browser():
-    """Configura o navegador Chrome com opções anti-bot."""
+    """
+    Configura o navegador Chrome para rodar em ambiente Docker.
+    Removido o webdriver-manager para maior estabilidade.
+    """
     chrome_options = Options()
+    # Opções essenciais para rodar em contêineres Docker sem interface gráfica
     chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    
     user_agents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36",
@@ -37,15 +60,17 @@ def setup_browser():
     logger.info(f"Usando User-Agent: {random_user_agent}")
     chrome_options.add_argument(f"user-agent={random_user_agent}")
     
-    service = Service(ChromeDriverManager().install())
+    # Define o caminho do chromedriver que é instalado pelo Dockerfile
+    service = Service(executable_path="/usr/bin/chromedriver")
+    
     driver = webdriver.Chrome(service=service, options=chrome_options)
     return driver
 
 def perform_scraping():
     """Executa o roteiro de scraping passo a passo."""
-    driver = setup_browser()
-    
+    driver = None
     try:
+        driver = setup_browser()
         logger.info("Acessando a página de login...")
         driver.get(config.LOGIN_URL)
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "input-mask"))).send_keys(config.USERNAME)
@@ -63,8 +88,8 @@ def perform_scraping():
         em_andamento_link_xpath = "//a[contains(@href, 'abaContraOperadora')]"
         em_andamento_element = WebDriverWait(driver, 15).until(EC.element_to_be_clickable((By.XPATH, em_andamento_link_xpath)))
         em_andamento_element.click()
-        time.sleep(random.uniform(2, 4)) 
-
+        time.sleep(random.uniform(2, 4))
+        
         logger.info("Coletando os dados da tabela...")
         table_id = "formContent:j_idt85:tbDemandaEmAndamento"
         table_element = WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.ID, table_id)))
@@ -119,8 +144,9 @@ def perform_scraping():
         logger.error(traceback.format_exc())
 
     finally:
-        logger.info("Fechando o navegador.")
-        driver.quit()
+        if driver:
+            logger.info("Fechando o navegador.")
+            driver.quit()
 
 if __name__ == "__main__":
     perform_scraping()
