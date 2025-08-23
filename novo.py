@@ -3,6 +3,7 @@ import random
 import traceback
 import os
 import json
+import logging
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
@@ -10,10 +11,10 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import WebDriverException, TimeoutException
 from datetime import datetime
 
-# Agora que você confirmou que tem esses arquivos, a importação é a chave.
-# Garanta que essas linhas não estejam comentadas no seu código.
+# Importa as configurações e utilitários dos seus próprios arquivos
 import config
 from utils import setup_logger, send_google_chat_notification
 
@@ -27,7 +28,7 @@ def highlight(element, driver):
 def setup_browser():
     """
     Configura o navegador Chrome para rodar em ambiente Docker.
-    Usa o Chromedriver instalado no Dockerfile.
+    Usa uma abordagem mais robusta para encontrar o Chromedriver.
     """
     chrome_options = Options()
     # Opções essenciais para rodar em contêineres Docker sem interface gráfica
@@ -46,11 +47,24 @@ def setup_browser():
     logger.info(f"Usando User-Agent: {random_user_agent}")
     chrome_options.add_argument(f"user-agent={random_user_agent}")
     
-    # Define o caminho do chromedriver que é instalado pelo Dockerfile
-    service = Service(executable_path="/usr/bin/chromedriver")
-    
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    return driver
+    driver = None
+    try:
+        # Tenta inicializar o driver sem um caminho explícito (recomendado para Selenium 4+)
+        driver = webdriver.Chrome(options=chrome_options)
+        logger.info("Driver Chrome inicializado com sucesso usando o caminho padrão.")
+        return driver
+    except WebDriverException as e:
+        logger.warning(f"Falha ao iniciar o driver no caminho padrão: {e}")
+        # Se falhar, tenta com o caminho explícito como fallback
+        try:
+            logger.info("Tentando inicializar o driver com caminho explícito: /usr/local/bin/chromedriver")
+            service = Service(executable_path="/usr/local/bin/chromedriver")
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+            logger.info("Driver Chrome inicializado com sucesso usando o caminho explícito.")
+            return driver
+        except Exception as e:
+            logger.error(f"Falha no fallback de driver: {e}")
+            raise e
 
 def perform_scraping():
     """Executa o roteiro de scraping passo a passo."""
@@ -59,7 +73,7 @@ def perform_scraping():
         driver = setup_browser()
         logger.info("Acessando a página de login...")
         
-        # A URL aqui deve vir do seu arquivo de configuração
+        # A URL agora vem do seu arquivo de configuração
         driver.get(config.LOGIN_URL)
         
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "input-mask"))).send_keys(config.USERNAME)
@@ -126,6 +140,12 @@ def perform_scraping():
         else:
             send_google_chat_notification("✅ Nenhuma nova demanda encontrada na ANS.")
 
+    except TimeoutException:
+        logger.error("Tempo de espera excedido. O elemento não foi encontrado a tempo.")
+        error_message = f"❌ Ocorreu um erro de Timeout. A página não carregou ou um elemento não foi encontrado."
+        send_google_chat_notification(error_message, is_error=True)
+        logger.error(traceback.format_exc())
+    
     except Exception as e:
         logger.error(f"Ocorreu um erro: {e}")
         error_message = f"❌ Ocorreu um erro durante o scraping da ANS.\n\nDetalhes do erro:\n{e}"
