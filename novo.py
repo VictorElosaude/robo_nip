@@ -12,25 +12,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 from datetime import datetime
 
-# Certifique-se de ter os arquivos 'config.py' e 'utils.py' no mesmo diretório
-# import config
-# from utils import setup_logger, send_google_chat_notification
-
-# # Caso você não tenha os arquivos de configuração, pode usar estas linhas temporariamente
-# def setup_logger():
-#     import logging
-#     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-#     return logging.getLogger()
-
-# def send_google_chat_notification(message, is_error=False):
-#     print(f"Notificação Google Chat: {message}")
-
-# class Config:
-#     LOGIN_URL = "http://example.com/login" # Substitua pela sua URL de login
-#     USERNAME = "seu_usuario" # Substitua pelo seu usuário
-#     PASSWORD = "sua_senha" # Substitua pela sua senha
-#     DOWNLOAD_PATH = "logs"
-# config = Config()
+# Agora que você confirmou que tem esses arquivos, a importação é a chave.
+# Garanta que essas linhas não estejam comentadas no seu código.
+import config
+from utils import setup_logger, send_google_chat_notification
 
 logger = setup_logger()
 
@@ -42,7 +27,7 @@ def highlight(element, driver):
 def setup_browser():
     """
     Configura o navegador Chrome para rodar em ambiente Docker.
-    Removido o webdriver-manager para maior estabilidade.
+    Usa o Chromedriver instalado no Dockerfile.
     """
     chrome_options = Options()
     # Opções essenciais para rodar em contêineres Docker sem interface gráfica
@@ -50,6 +35,7 @@ def setup_browser():
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     
+    # Adiciona opções para evitar detecção como bot
     user_agents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36",
@@ -72,7 +58,10 @@ def perform_scraping():
     try:
         driver = setup_browser()
         logger.info("Acessando a página de login...")
+        
+        # A URL aqui deve vir do seu arquivo de configuração
         driver.get(config.LOGIN_URL)
+        
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "input-mask"))).send_keys(config.USERNAME)
         driver.find_element(By.ID, "mod-login-password").send_keys(config.PASSWORD)
         driver.find_element(By.ID, "botao").click()
