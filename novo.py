@@ -49,15 +49,22 @@ def setup_browser():
     
     driver = None
     try:
-        # AQUI ESTÁ A LINHA CORRIGIDA
-        # O caminho é agora o que o Dockerfile realmente instala
-        service = Service(executable_path="/usr/local/bin/chromedriver")
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        logger.info("Driver Chrome inicializado com sucesso.")
+        # Tenta inicializar o driver sem um caminho explícito (recomendado para Selenium 4+)
+        driver = webdriver.Chrome(options=chrome_options)
+        logger.info("Driver Chrome inicializado com sucesso usando o caminho padrão.")
         return driver
     except WebDriverException as e:
-        logger.error(f"Falha ao iniciar o driver no caminho explícito: {e}")
-        raise e
+        logger.warning(f"Falha ao iniciar o driver no caminho padrão: {e}")
+        # Se falhar, tenta com o caminho explícito como fallback
+        try:
+            logger.info("Tentando inicializar o driver com caminho explícito: /usr/local/bin/chromedriver")
+            service = Service(executable_path="/usr/local/bin/chromedriver")
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+            logger.info("Driver Chrome inicializado com sucesso usando o caminho explícito.")
+            return driver
+        except Exception as e:
+            logger.error(f"Falha no fallback de driver: {e}")
+            raise e
 
 def perform_scraping():
     """Executa o roteiro de scraping passo a passo."""
@@ -105,7 +112,8 @@ def perform_scraping():
         
         logger.info(f"Total de {len(json_data)} registros encontrados para salvar em JSON.")
         
-        json_path = os.path.join(config.DOWNLOAD_PATH, "dados_nip.json")
+        # AQUI ESTÁ A MUDANÇA: SALVANDO DENTRO DO DIRETÓRIO DO CONTÊINER
+        json_path = "/app/dados_nip.json"
         with open(json_path, 'w', encoding='utf-8') as file:
             json.dump(json_data, file, indent=4, ensure_ascii=False)
         logger.info(f"Dados salvos com sucesso em: {json_path}")
