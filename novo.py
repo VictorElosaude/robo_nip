@@ -137,8 +137,7 @@ def perform_scraping():
 
         # --- NOVO: INCLUI O CONTADOR NO TÍTULO DAS NOTIFICAÇÕES ---
         if json_data:
-            chat_message_header = f"✅ Encontradas {len(json_data)} novas demandas na ANS!\n"
-            chat_message_header = f"(Execução #{run_count})\n\n"
+            chat_message_header = f"✅ Encontradas {len(json_data)} novas demandas na ANS!\n(Execução #{run_count})\n\n"
             chat_message_body = ""
             records_to_send = json_data[:10]
             for record in records_to_send:
