@@ -157,7 +157,7 @@ def perform_scraping():
             
             send_google_chat_notification(chat_message_header + chat_message_body)
         else:
-            send_google_chat_notification(f"✅ Nenhuma nova demanda encontrada na ANS. (Nº {run_count})")
+            send_google_chat_notification(f"✅ Nenhuma nova demanda encontrada na ANS. (Execução #{run_count})")
         # --------------------------------------------------------
 
     except TimeoutException:
