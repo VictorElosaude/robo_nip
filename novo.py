@@ -20,6 +20,24 @@ from utils import setup_logger, send_google_chat_notification
 
 logger = setup_logger()
 
+# --- NOVO: FUNÇÃO PARA GERENCIAR O CONTADOR ---
+def get_run_count():
+    """Lê o contador de um arquivo e o incrementa."""
+    counter_file = 'counter.json'
+    try:
+        with open(counter_file, 'r') as f:
+            data = json.load(f)
+            count = data.get('count', 0)
+    except (FileNotFoundError, json.JSONDecodeError):
+        count = 0
+    
+    count += 1
+    with open(counter_file, 'w') as f:
+        json.dump({'count': count}, f)
+        
+    return count
+# -----------------------------------------------
+
 def highlight(element, driver):
     """Destaca um elemento na tela com uma borda amarela."""
     driver.execute_script("arguments[0].style.border='3px solid yellow'", element)
@@ -31,12 +49,10 @@ def setup_browser():
     Usa uma abordagem mais robusta para encontrar o Chromedriver.
     """
     chrome_options = Options()
-    # Opções essenciais para rodar em contêineres Docker sem interface gráfica
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     
-    # Adiciona opções para evitar detecção como bot
     user_agents = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36",
@@ -49,13 +65,11 @@ def setup_browser():
     
     driver = None
     try:
-        # Tenta inicializar o driver sem um caminho explícito (recomendado para Selenium 4+)
         driver = webdriver.Chrome(options=chrome_options)
         logger.info("Driver Chrome inicializado com sucesso usando o caminho padrão.")
         return driver
     except WebDriverException as e:
         logger.warning(f"Falha ao iniciar o driver no caminho padrão: {e}")
-        # Se falhar, tenta com o caminho explícito como fallback
         try:
             logger.info("Tentando inicializar o driver com caminho explícito: /usr/local/bin/chromedriver")
             service = Service(executable_path="/usr/local/bin/chromedriver")
@@ -69,11 +83,15 @@ def setup_browser():
 def perform_scraping():
     """Executa o roteiro de scraping passo a passo."""
     driver = None
+    
+    # --- NOVO: OBTÉM E INCREMENTA O CONTADOR ---
+    run_count = get_run_count()
+    # -------------------------------------------
+    
     try:
         driver = setup_browser()
         logger.info("Acessando a página de login...")
         
-        # A URL agora vem do seu arquivo de configuração
         driver.get(config.LOGIN_URL)
         
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "input-mask"))).send_keys(config.USERNAME)
@@ -112,14 +130,14 @@ def perform_scraping():
         
         logger.info(f"Total de {len(json_data)} registros encontrados para salvar em JSON.")
         
-        # AQUI ESTÁ A MUDANÇA: SALVANDO DENTRO DO DIRETÓRIO DO CONTÊINER
         json_path = "/app/dados_nip.json"
         with open(json_path, 'w', encoding='utf-8') as file:
             json.dump(json_data, file, indent=4, ensure_ascii=False)
         logger.info(f"Dados salvos com sucesso em: {json_path}")
 
+        # --- NOVO: INCLUI O CONTADOR NO TÍTULO DAS NOTIFICAÇÕES ---
         if json_data:
-            chat_message_header = f"✅ Encontradas {len(json_data)} novas demandas na ANS!\n\n"
+            chat_message_header = f"🚨 Nova(s) Demanda(s) Encontrada(s)! (Execução #{run_count})\n\n"
             chat_message_body = ""
             records_to_send = json_data[:10]
             for record in records_to_send:
@@ -139,17 +157,18 @@ def perform_scraping():
             
             send_google_chat_notification(chat_message_header + chat_message_body)
         else:
-            send_google_chat_notification("✅ Nenhuma nova demanda encontrada na ANS.")
+            send_google_chat_notification(f"✅ Nenhuma nova demanda encontrada na ANS. (Execução #{run_count})")
+        # --------------------------------------------------------
 
     except TimeoutException:
         logger.error("Tempo de espera excedido. O elemento não foi encontrado a tempo.")
-        error_message = f"❌ Ocorreu um erro de Timeout. A página não carregou ou um elemento não foi encontrado."
+        error_message = f"❌ Ocorreu um erro de Timeout. A página não carregou ou um elemento não foi encontrado. (Execução #{run_count})"
         send_google_chat_notification(error_message, is_error=True)
         logger.error(traceback.format_exc())
     
     except Exception as e:
         logger.error(f"Ocorreu um erro: {e}")
-        error_message = f"❌ Ocorreu um erro durante o scraping da ANS.\n\nDetalhes do erro:\n{e}"
+        error_message = f"❌ Ocorreu um erro durante o scraping da ANS.\n\nDetalhes do erro:\n{e} (Execução #{run_count})"
         send_google_chat_notification(error_message, is_error=True)
         logger.error(traceback.format_exc())
 
