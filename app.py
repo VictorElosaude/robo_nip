@@ -11,8 +11,11 @@ def job():
         try:
             print("Executando scraping...")
             novo.perform_scraping()
-            print("Scraping concluído. Aguardando 10 minutos...")
-           time.sleep(24 * 60 * 60) # 24 horas em segundos
+            
+            # Gera um tempo de espera aleatório entre 6 e 8 horas
+            random_sleep_time = random.randint(6 * 3600, 8 * 3600)
+            print(f"Scraping concluído. Aguardando {random_sleep_time // 3600} horas e {(random_sleep_time % 3600) // 60} minutos...")
+            time.sleep(random_sleep_time) 
         except Exception as e:
             print(f"Ocorreu um erro durante o scraping: {e}")
             # Em caso de erro, espera 1 minuto para tentar novamente
