@@ -42,4 +42,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN mkdir -p logs
 
 # Comando para rodar o script principal
-CMD ["python", "novo.py"]
+# CMD ["python", "novo.py"]
