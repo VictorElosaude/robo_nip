@@ -2,7 +2,7 @@ from flask import Flask
 import threading
 import time
 import novo # Importe seu script de scraping
-
+import random
 app = Flask(__name__)
 
 def job():
