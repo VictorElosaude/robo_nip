@@ -14,4 +14,4 @@ DOWNLOAD_PATH = r"C:\Users\knoxv\Downloads"
 
 # --- Configurações de Notificação (Google Chat Webhook) ---
 GOOGLE_CHAT_WEBHOOK_URL = "https://chat.googleapis.com/v1/spaces/AAAAapLy5g4/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=_EpwglU4AvAsF39iPVgHVmG4c5Aw61RJrXp8KHgWUcQ"
-GOOGLE_CHAT_LOGO_URL = "https://i.imgur.com/Zo4bxIo.png"
+GOOGLE_CHAT_LOGO_URL = "https://i.imgur.com/p5E1FQK.png"
