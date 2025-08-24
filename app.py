@@ -1,35 +1,28 @@
 from flask import Flask
-from apscheduler.schedulers.background import BackgroundScheduler
-import novo
-import atexit
-import logging
+import threading
+import time
+import novo # Importe seu script de scraping
 
 app = Flask(__name__)
 
-# Configura o logger do Flask para não duplicar logs
-log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR)
-
 def job():
-    """Função que executa o script de scraping."""
-    novo.perform_scraping()
+    """Função que executa o scraping e espera."""
+    while True:
+        try:
+            print("Executando scraping...")
+            novo.perform_scraping()
+            print("Scraping concluído. Aguardando 10 minutos...")
+            time.sleep(10 * 60) # 10 minutos em segundos
+        except Exception as e:
+            print(f"Ocorreu um erro durante o scraping: {e}")
+            # Em caso de erro, espera 1 minuto para tentar novamente
+            time.sleep(60)
 
-# Cria o agendador de tarefas
-scheduler = BackgroundScheduler()
-
-# Adiciona a tarefa de scraping para rodar a cada 5 minutos
-scheduler.add_job(func=job, trigger='interval', minutes=5)
-
-# Inicia o agendador
-scheduler.start()
-
-# Garante que o agendador seja desligado corretamente ao sair do aplicativo
-atexit.register(lambda: scheduler.shutdown())
+threading.Thread(target=job, daemon=True).start()
 
 @app.route("/")
 def home():
-    """Rota principal que confirma que o serviço está no ar."""
-    return "Serviço de scraping em andamento!"
+    return "Serviço de scraping ativo!"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=3000)
