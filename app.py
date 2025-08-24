@@ -12,7 +12,7 @@ def job():
             print("Executando scraping...")
             novo.perform_scraping()
             print("Scraping concluído. Aguardando 10 minutos...")
-            time.sleep(10 * 60) # 10 minutos em segundos
+           time.sleep(24 * 60 * 60) # 24 horas em segundos
         except Exception as e:
             print(f"Ocorreu um erro durante o scraping: {e}")
             # Em caso de erro, espera 1 minuto para tentar novamente
