@@ -46,11 +46,11 @@ def send_google_chat_notification(message_text, is_error=False, log_file_path=No
         return False
 
     if is_error:
-        title = "❌ ERRO no Processo de Scraping"
-        header_text = "Setor de Inovação Informa: Falha no processo"
+        title = "❌ ERRO no Processo"
+        header_text = "Contactar: Inovação Elosaúde"
     else:
-        title = "✅ Processo de Scraping Concluído"
-        header_text = "Setor de Inovação Informa:"
+        title = "✅ Processo Concluído"
+        header_text = "Inovação Elosaúde Informa:"
 
     full_message = message_text
     if log_file_path and os.path.exists(log_file_path):
