@@ -43,3 +43,6 @@ RUN mkdir -p logs
 
 # Comando para rodar o script principal
 CMD ["python", "novo.py"]
+
+# Comando para rodar a aplicação com Gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:3000", "app:app"]
